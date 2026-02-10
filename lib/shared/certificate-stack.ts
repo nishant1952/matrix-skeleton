@@ -1,0 +1,46 @@
+import * as cdk from 'aws-cdk-lib';
+import * as acm from 'aws-cdk-lib/aws-certificatemanager';
+import * as route53 from 'aws-cdk-lib/aws-route53';
+import { Construct } from 'constructs';
+
+export interface CertificateStackProps extends cdk.StackProps {
+  domainName: string;
+  subjectAlternativeNames?: string[];
+  hostedZoneId: string;
+  hostedZoneName: string;
+}
+
+export class CertificateStack extends cdk.Stack {
+  public readonly certificate: acm.ICertificate;
+
+  constructor(scope: Construct, id: string, props: CertificateStackProps) {
+    super(scope, id, props);
+
+    // Import the existing hosted zone
+    const hostedZone = route53.HostedZone.fromHostedZoneAttributes(
+      this,
+      'HostedZone',
+      {
+        hostedZoneId: props.hostedZoneId,
+        zoneName: props.hostedZoneName,
+      }
+    );
+
+    // Create ACM certificate with DNS validation
+    this.certificate = new acm.Certificate(this, 'Certificate', {
+      domainName: props.domainName,
+      subjectAlternativeNames: props.subjectAlternativeNames,
+      validation: acm.CertificateValidation.fromDns(hostedZone),
+    });
+
+    // Output the certificate ARN
+    new cdk.CfnOutput(this, 'CertificateArn', {
+      value: this.certificate.certificateArn,
+      description: `Certificate ARN for ${props.domainName}`,
+      exportName: `${id}:CertificateArn`,
+    });
+
+    cdk.Tags.of(this).add('Stack', id);
+    cdk.Tags.of(this).add('ManagedBy', 'CDK');
+  }
+}
