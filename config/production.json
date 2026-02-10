@@ -1,0 +1,30 @@
+{
+  "environment": "production",
+  "fargate": {
+    "cpu": 512,
+    "memory": 1024,
+    "desiredCount": 1
+  },
+  "autoScaling": {
+    "enabled": true,
+    "minCapacity": 1,
+    "maxCapacity": 3,
+    "targetCpuUtilization": 70,
+    "targetMemoryUtilization": 80
+  },
+  "alb": {
+    "internetFacing": true,
+    "deletionProtection": false,
+    "idleTimeout": 60,
+    "deregistrationDelay": 30
+  },
+  "logging": {
+    "retentionDays": 30
+  },
+  "githubBranch": "main",
+  "codeBuild": {
+    "computeType": "BUILD_GENERAL1_SMALL",
+    "buildTimeout": 30,
+    "queuedTimeout": 480
+  }
+}

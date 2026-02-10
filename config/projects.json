@@ -1,0 +1,26 @@
+{
+  "exampleApp": {
+    "name": "example-app",
+    "displayName": "Example Application",
+    "githubRepo": "my-org/example-app",
+    "ecrRepositoryName": "example-app",
+    "containerPort": 8000,
+    "healthCheckPath": "/health",
+    "healthCheckInterval": 30,
+    "healthCheckTimeout": 5,
+    "healthyThresholdCount": 2,
+    "unhealthyThresholdCount": 3,
+    "environments": ["dev", "staging", "production"],
+    "domains": {
+      "dev": "app-dev.example.com",
+      "staging": "app-staging.example.com",
+      "production": "app.example.com"
+    },
+    "alarmEmail": "alerts@example.com",
+    "requiredEnvVars": [
+      "SECRET_KEY",
+      "DEBUG",
+      "DATABASE_URL"
+    ]
+  }
+}
