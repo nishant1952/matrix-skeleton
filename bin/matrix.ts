@@ -10,6 +10,7 @@ import { ProductionAlbStack } from '../lib/alb/production-alb-stack';
 import { DnsStack } from '../lib/shared/dns-stack';
 import { ElastiCacheStack } from '../lib/shared/elasticache-stack';
 import { ScheduledTaskStack } from '../lib/shared/scheduled-task-stack';
+import { MonitoringStack } from '../lib/shared/monitoring-stack';
 import * as events from 'aws-cdk-lib/aws-events';
 
 // Import configuration
@@ -263,5 +264,51 @@ productionDnsStack.addDependency(productionAlbStack);
 // });
 // exampleCronStack.addDependency(networkingStack);
 // exampleCronStack.addDependency(exampleAppSharedStack);
+
+// ─── Monitoring ─────────────────────────────────────────────────────────────
+const monitoringStack = new MonitoringStack(app, 'MonitoringStack', {
+  env: env,
+  monitoringConfig: (commonConfig as any).monitoring,
+  ecsServices: [
+    {
+      projectName: projectsConfig.exampleApp.name,
+      environment: stagingConfig.environment,
+      clusterName: `${projectsConfig.exampleApp.name}-${stagingConfig.environment}-cluster`,
+      serviceName: `${projectsConfig.exampleApp.name}-${stagingConfig.environment}-service`,
+      maxCapacity: stagingConfig.autoScaling.maxCapacity,
+    },
+    {
+      projectName: projectsConfig.exampleApp.name,
+      environment: productionConfig.environment,
+      clusterName: `${projectsConfig.exampleApp.name}-${productionConfig.environment}-cluster`,
+      serviceName: `${projectsConfig.exampleApp.name}-${productionConfig.environment}-service`,
+      maxCapacity: productionConfig.autoScaling.maxCapacity,
+    },
+  ],
+  codeBuildProjects: [
+    { projectName: `${projectsConfig.exampleApp.name}-${stagingConfig.environment}-build` },
+    { projectName: `${projectsConfig.exampleApp.name}-${productionConfig.environment}-build` },
+  ],
+  logGroups: [
+    // ECS log groups
+    { name: `/ecs/${projectsConfig.exampleApp.name}-${stagingConfig.environment}` },
+    { name: `/ecs/${projectsConfig.exampleApp.name}-${productionConfig.environment}` },
+    // CodeBuild log groups
+    { name: `/aws/codebuild/${projectsConfig.exampleApp.name}-${stagingConfig.environment}` },
+    { name: `/aws/codebuild/${projectsConfig.exampleApp.name}-${productionConfig.environment}` },
+  ],
+  albs: [
+    { name: 'staging-shared-alb', alb: stagingAlbStack.alb },
+    { name: 'production-shared-alb', alb: productionAlbStack.alb },
+  ],
+  description: 'Infrastructure monitoring alarms, budget alerts, and cost controls',
+  tags: {
+    ...commonConfig.tags,
+    Stack: 'MonitoringStack',
+  },
+});
+monitoringStack.addDependency(networkingStack);
+monitoringStack.addDependency(stagingAlbStack);
+monitoringStack.addDependency(productionAlbStack);
 
 app.synth();
